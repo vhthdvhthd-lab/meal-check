@@ -292,7 +292,7 @@ function InventoryTable({items,records,incoming,week,patchRecord,patchItem,getIn
         <td className="sticky-col item-name"><b>{item.name}</b>{ins.length>0&&<span className="mini-badge">입고 {ins.length}건</span>}</td>
         <td><input className="unit-input" value={item.unit||""} placeholder="단위" onChange={e=>patchItem(item.id,{unit:e.target.value})}/></td>
         <td><input className="num" value={r.opening_stock??""} onChange={e=>patchRecord(item.id,{opening_stock:e.target.value})}/></td>
-        <td className="incoming-cell"><div className={`incoming-direct ${ins[0]?.quantity&&!ins[0]?.incoming_date?"date-required":""}`}><input aria-label={`${item.name} 입고일자`} title={ins[0]?.quantity&&!ins[0]?.incoming_date?"입고일자를 입력하세요":"입고일자"} type="date" required value={ins[0]?.incoming_date||""} onChange={e=>patchIncoming(item.id,{incoming_date:e.target.value})}/><input aria-label={`${item.name} 입고수량`} className="incoming-qty" value={ins[0]?.quantity||""} placeholder="수량" onChange={e=>patchIncoming(item.id,{quantity:e.target.value})}/></div></td>
+        <td className="incoming-cell"><div className={`incoming-direct ${ins[0]?.quantity&&!ins[0]?.incoming_date?"date-required":""}`}><input className="screen-date" aria-label={`${item.name} 입고일자`} title={ins[0]?.quantity&&!ins[0]?.incoming_date?"입고일자를 입력하세요":"입고일자"} type="date" required value={ins[0]?.incoming_date||""} onChange={e=>patchIncoming(item.id,{incoming_date:e.target.value})}/><span className="print-date">{ins[0]?.incoming_date?fmtDate(ins[0].incoming_date):""}</span><input aria-label={`${item.name} 입고수량`} className="incoming-qty" value={ins[0]?.quantity||""} placeholder="수량" onChange={e=>patchIncoming(item.id,{quantity:e.target.value})}/></div></td>
         {DAYS.map(d=><td key={d}><input className="num" value={r[d+"_usage"]??""} onChange={e=>patchRecord(item.id,{[d+"_usage"]:e.target.value})}/></td>)}
         <td className="stock-cell"><input className={`stock ${numeric(st)<0?"negative":numeric(st)===0?"zero":""}`} value={r.manual_stock!==""&&r.manual_stock!=null?r.manual_stock:(st==null?"직접 확인":displayNum(st))}
           onChange={e=>patchRecord(item.id,{manual_stock:e.target.value})}/>
@@ -300,7 +300,7 @@ function InventoryTable({items,records,incoming,week,patchRecord,patchItem,getIn
           {numeric(st)===0&&<span className="stock-badge zero-badge">재고 없음</span>}
           {numeric(st)<0&&<span className="stock-badge neg-badge">재고 확인</span>}
         </td>
-        <td className="date-cell"><input type="date" value={expirationFor(item,r)} onChange={e=>patchRecord(item.id,item.category==="야채·채소"?{consumption_date:e.target.value}:{expiration_date:e.target.value})}/>
+        <td className="date-cell"><input className="screen-date" type="date" value={expirationFor(item,r)} onChange={e=>patchRecord(item.id,item.category==="야채·채소"?{consumption_date:e.target.value}:{expiration_date:e.target.value})}/><span className="print-date">{expirationFor(item,r)?fmtDate(expirationFor(item,r)):""}</span>
           {status&&<span className={"expiry "+(status==="임박"?"near":status==="기한 지남"?"passed":"ok")}>{status}</span>}
         </td>
         <td><select value={r.storage_method||item.storage_method} onChange={e=>patchRecord(item.id,{storage_method:e.target.value})}>{STORAGE_METHODS.map(x=><option key={x}>{x}</option>)}</select></td>
