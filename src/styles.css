@@ -104,3 +104,16 @@
   .incoming-direct{grid-template-columns:1.35fr .65fr!important;align-items:center}
   .inventory input,.inventory select{color:#000!important;-webkit-text-fill-color:#000!important;opacity:1!important}
 }
+
+.item-name{text-align:center!important;padding-left:8px!important;padding-right:8px!important}
+.incoming-date-cell{min-width:128px}
+.incoming-date-cell .screen-date{width:122px}
+.incoming-date-cell.date-required .screen-date{border-color:#d65a69;background:#fff5f6}
+.incoming-qty-cell{min-width:82px}
+.incoming-qty{width:72px!important}
+
+@media print{
+  .item-name{text-align:center!important;padding-left:2px!important;padding-right:2px!important}
+  .incoming-date-cell,.incoming-qty-cell{min-width:0!important}
+  .incoming-qty{width:100%!important;text-align:center!important}
+}
