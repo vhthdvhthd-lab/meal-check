@@ -74,3 +74,24 @@
   .note::placeholder{color:transparent!important;opacity:0!important}
   .inventory select{appearance:none!important;-webkit-appearance:none!important;background-image:none!important;padding-right:0!important}
 }
+
+.unit-input{width:72px!important;text-align:center}
+.incoming-direct{display:grid;grid-template-columns:1.4fr .7fr;gap:5px;min-width:172px}
+.incoming-direct input{width:100%;min-width:0}
+.incoming-direct.date-required input[type="date"]{border-color:#d65a69;background:#fff5f6}
+.incoming-qty{text-align:right}
+
+@media print{
+  @page{size:A4 landscape;margin:7mm 7mm 9mm}
+  .table-wrap{width:100%!important;border:1px solid #777!important;overflow:visible!important}
+  .inventory{width:100%!important;max-width:100%!important;border-collapse:collapse!important;table-layout:fixed!important;font-size:10px!important}
+  .inventory th,.inventory td{border:1px solid #777!important;padding:4px 2px!important;font-size:10px!important}
+  .inventory input,.inventory select{font-size:10px!important}
+  .inventory thead th{border-top:1px solid #777!important}
+  .inventory th:first-child,.inventory td:first-child{border-left:1px solid #777!important}
+  .inventory th:last-child,.inventory td:last-child{border-right:1px solid #777!important}
+  .incoming-direct{display:grid!important;grid-template-columns:1.35fr .65fr;gap:2px;min-width:0!important}
+  .incoming-direct input{font-size:9px!important;text-align:center!important}
+  .unit-input{font-size:10px!important;text-align:center!important}
+  .unit-input::placeholder,.incoming-qty::placeholder{color:transparent!important;opacity:0!important}
+}
