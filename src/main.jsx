@@ -89,7 +89,7 @@ function App(){
   const [records,setRecords]=useState(()=>load(STORAGE.records,[]));
   const [incoming,setIncoming]=useState(()=>load(STORAGE.incoming,[]));
   const [date,setDate]=useState(()=>isoDate(mondayOf(new Date())));
-  const [category,setCategory]=useState("전체");
+  const [category,setCategory]=useState(CATEGORIES[0]);
   const [filter,setFilter]=useState("전체");
   const [search,setSearch]=useState("");
   const [page,setPage]=useState("weekly");
@@ -237,7 +237,7 @@ function App(){
       </div>
 
       <section className="toolbar">
-        <div className="tabs">{["전체",...CATEGORIES].map(c=><button className={category===c?"active":""} onClick={()=>setCategory(c)} key={c}>{c}</button>)}</div>
+        <div className="tabs">{CATEGORIES.map(c=><button className={category===c?"active":""} onClick={()=>setCategory(c)} key={c}>{c}</button>)}</div>
         <div className="filters"><div className="search">⌕<input placeholder="품목 검색" value={search} onChange={e=>setSearch(e.target.value)}/></div>
           {["전체","이번 주 입고","재고 없음","재고 확인"].map(f=><button className={filter===f?"filter active-filter": "filter"} onClick={()=>setFilter(f)} key={f}>{f}</button>)}
         </div>

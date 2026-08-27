@@ -42,3 +42,10 @@
   .print-logo{display:flex;justify-content:flex-end;align-items:center;margin-top:9px}
   .print-logo img{display:block;width:210px;height:auto;object-fit:contain}
 }
+
+@media print{
+  .approval-cell{border-right:1px solid #555}
+  .approval-cell:last-child{border-right:0}
+  .inventory thead .sticky-col{background:#eee!important;color:#111!important}
+  .print-logo img{width:105px!important}
+}
