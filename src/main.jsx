@@ -223,6 +223,10 @@ function App(){
           <button onClick={printNow}>▣ 인쇄 / PDF 저장</button>
           <input aria-label="기준 날짜" title="날짜로 주차 선택" type="date" value={date} onChange={e=>setDate(isoDate(mondayOf(parseLocal(e.target.value))))}/>
         </div>
+        <section className="print-approval" aria-label="결재란">
+          <div className="approval-title">결재</div>
+          {['담당','팀장','국장','센터장'].map(role=><div className="approval-cell" key={role}><span>{role}</span><i></i></div>)}
+        </section>
       </section>
 
       <div className="summary">
@@ -242,6 +246,8 @@ function App(){
       <InventoryTable items={visible} records={records} incoming={incoming} week={week} patchRecord={patchRecord}
         getIncoming={getIncoming} totalIncoming={totalIncoming} addIncoming={addIncoming} removeIncoming={removeIncoming}
         expirationFor={expirationFor} expiryStatus={expiryStatus} effectiveStock={effectiveStock} onDelete={deleteItem}/>
+
+      <div className="print-logo"><img src="/rowoon-center-logo.png" alt="사회적협동조합 로운주간이용센터"/></div>
 
       <div className="footer-note">입력 내용은 이 브라우저에 자동 저장됩니다. 실제 재고가 계산값과 다르면 <b>재고현황</b>을 직접 수정할 수 있습니다.</div>
     </main>

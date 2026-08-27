@@ -23,3 +23,22 @@
 @media print{
   .title-row .main-actions,.delete-col,.delete-cell{display:none!important}
 }
+
+.print-approval,.print-logo{display:none}
+
+@media print{
+  .title-row{position:relative;min-height:62px;padding-right:330px;margin-bottom:8px}
+  .title-row:before{font-size:22px!important;margin-top:7px}
+  .range{font-size:12px!important;font-weight:700;margin-top:6px}
+  .print-approval{display:flex;position:absolute;right:0;top:0;height:58px;border:1px solid #555;background:#fff}
+  .approval-title{width:30px;display:grid;place-items:center;border-right:1px solid #555;font-size:9px;font-weight:700;writing-mode:vertical-rl}
+  .approval-cell{width:70px;display:flex;flex-direction:column}
+  .approval-cell span{height:20px;display:grid;place-items:center;border-bottom:1px solid #777;font-size:9px;font-weight:700}
+  .approval-cell i{flex:1}
+  .inventory{font-size:9px!important}
+  .inventory input,.inventory select{font-size:9px!important}
+  .inventory th,.inventory td{padding:5px 3px!important}
+  .table-wrap:after{content:none!important;display:none!important}
+  .print-logo{display:flex;justify-content:flex-end;align-items:center;margin-top:9px}
+  .print-logo img{display:block;width:210px;height:auto;object-fit:contain}
+}
