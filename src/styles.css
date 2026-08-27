@@ -49,3 +49,28 @@
   .inventory thead .sticky-col{background:#eee!important;color:#111!important}
   .print-logo img{width:105px!important}
 }
+
+/* Incoming date/quantity is always visible and included in stock calculation */
+.incoming-cell{min-width:138px}
+.incoming-add{padding:5px 8px;font-size:11px;background:#f7f8fb}
+.incoming-list{position:static;display:block;transform:none;margin-top:5px;border:0;border-radius:0;padding:0;box-shadow:none;text-align:left;background:transparent}
+.incoming-list div{display:grid;grid-template-columns:1fr auto auto;align-items:center;gap:5px;padding:3px 0;border-bottom:1px dashed #e1e5ec}
+.incoming-list div span{font-size:10px;color:#68758d}
+.incoming-list div b{font-size:11px}
+.incoming-list>strong{display:block;text-align:right;margin-top:4px;font-size:10px;color:#4f5f7c}
+.no-incoming{display:block;color:#9aa3b2;margin-top:4px}
+
+@media print{
+  .title-row{min-height:88px!important}
+  .print-approval{height:82px!important}
+  .approval-title{writing-mode:horizontal-tb!important;line-height:1.35;text-align:center;width:30px!important}
+  .approval-cell span{height:22px!important}
+  .incoming-add,.incoming-list button,.no-incoming{display:none!important}
+  .incoming-list{display:block!important;margin:0!important}
+  .incoming-list div{grid-template-columns:1fr auto;gap:3px;padding:2px 0;border:0}
+  .incoming-list div span,.incoming-list div b,.incoming-list>strong{font-size:8px!important}
+  input[type="date"]::-webkit-calendar-picker-indicator{display:none!important;-webkit-appearance:none!important}
+  input[type="date"]{appearance:none!important;background:none!important}
+  .note::placeholder{color:transparent!important;opacity:0!important}
+  .inventory select{appearance:none!important;-webkit-appearance:none!important;background-image:none!important;padding-right:0!important}
+}

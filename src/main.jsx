@@ -69,10 +69,11 @@ function numeric(v){
   const unit=s.match(/^(-?\d*\.?\d+)\s*(g|kg|개|알|봉지|통|쪽|단|망|ml)?$/i);
   return unit?Number(unit[1]):null;
 }
-function stockCalc(r){
-  const vals=[r.opening_stock,r.incoming_quantity,...DAYS.map(d=>r[d+"_usage"])];
+function stockCalc(r,incomingOverride=null){
+  const incomingValue=incomingOverride==null?r.incoming_quantity:incomingOverride;
+  const vals=[r.opening_stock,incomingValue,...DAYS.map(d=>r[d+"_usage"])];
   if(vals.some(v=>v!=="" && v!=null && numeric(v)===null)) return null;
-  return numeric(r.opening_stock)+numeric(r.incoming_quantity)-DAYS.reduce((a,d)=>a+numeric(r[d+"_usage"]),0);
+  return numeric(r.opening_stock)+numeric(incomingValue)-DAYS.reduce((a,d)=>a+numeric(r[d+"_usage"]),0);
 }
 function makeRecord(item, weekStart, opening=""){
   return {id:uid(),weekly_record_id:weekStart,item_id:item.id,opening_stock:opening,incoming_quantity:0,
@@ -115,7 +116,8 @@ function App(){
       activeItems.forEach(item=>{
         if(!next.some(r=>r.weekly_record_id===week.start&&r.item_id===item.id)){
           const prior=next.find(r=>r.weekly_record_id===previousWeek(week.start)&&r.item_id===item.id);
-          next.push(makeRecord(item,week.start,prior ? (prior.manual_stock!==""?prior.manual_stock:(stockCalc(prior)??prior.current_stock??"")) : ""));
+          const priorIncoming=prior?incoming.filter(x=>x.weekly_record_id===prior.weekly_record_id&&x.item_id===prior.item_id).reduce((a,x)=>a+(numeric(x.quantity)??0),0):0;
+          next.push(makeRecord(item,week.start,prior ? (prior.manual_stock!==""?prior.manual_stock:(stockCalc(prior,priorIncoming)??prior.current_stock??"")) : ""));
           changed=true;
         }
       });
@@ -135,7 +137,7 @@ function App(){
   }
   function totalIncoming(itemId){return getIncoming(itemId).reduce((a,x)=>a+(numeric(x.quantity)??0),0)}
   function recordFor(item){return records.find(r=>r.weekly_record_id===week.start&&r.item_id===item.id)||makeRecord(item,week.start)}
-  function effectiveStock(r){return r.manual_stock!==""&&r.manual_stock!=null?r.manual_stock:stockCalc(r)}
+  function effectiveStock(r){return r.manual_stock!==""&&r.manual_stock!=null?r.manual_stock:stockCalc(r,totalIncoming(r.item_id))}
   function expirationFor(item,r){return item.category==="야채·채소"?(r.consumption_date||""):(r.expiration_date||"")}
   function expiryStatus(s){
     if(!s)return "";
@@ -194,7 +196,8 @@ function App(){
       if(r.weekly_record_id!==week.start)return r;
       const p=rs.find(x=>x.weekly_record_id===prevStart&&x.item_id===r.item_id);
       if(!p)return r;
-      const v=p.manual_stock!==""&&p.manual_stock!=null?p.manual_stock:(stockCalc(p)??p.current_stock??"");
+      const priorIncoming=incoming.filter(x=>x.weekly_record_id===prevStart&&x.item_id===p.item_id).reduce((a,x)=>a+(numeric(x.quantity)??0),0);
+      const v=p.manual_stock!==""&&p.manual_stock!=null?p.manual_stock:(stockCalc(p,priorIncoming)??p.current_stock??"");
       return {...r,opening_stock:v,updated_at:new Date().toISOString()};
     }));
     setSaveState("저장됨");
@@ -224,7 +227,7 @@ function App(){
           <input aria-label="기준 날짜" title="날짜로 주차 선택" type="date" value={date} onChange={e=>setDate(isoDate(mondayOf(parseLocal(e.target.value))))}/>
         </div>
         <section className="print-approval" aria-label="결재란">
-          <div className="approval-title">결재</div>
+          <div className="approval-title">결<br/>재</div>
           {['담당','팀장','국장','센터장'].map(role=><div className="approval-cell" key={role}><span>{role}</span><i></i></div>)}
         </section>
       </section>
@@ -265,7 +268,7 @@ function Summary({title,value,icon,onClick}){return <button className="summary-c
 function InventoryTable({items,records,incoming,week,patchRecord,getIncoming,totalIncoming,addIncoming,removeIncoming,expirationFor,expiryStatus,effectiveStock,onDelete}){
   return <div className="table-wrap"><table className="inventory">
     <thead><tr>
-      <th className="sticky-col item-col">품목명</th><th>단위</th><th>기초재고<br/>(전주이월)</th><th>입고</th>
+      <th className="sticky-col item-col">품목명</th><th>단위</th><th>기초재고<br/>(전주이월)</th><th>입고일자<br/>입고수량</th>
       {DAY_LABELS.map(d=><th key={d}>{d} 사용량</th>)}<th>재고현황</th><th>유통기한<br/>/ 소비기한</th><th>보관방법</th><th>비고</th><th className="delete-col">삭제</th>
     </tr></thead>
     <tbody>{items.map(item=>{
@@ -275,7 +278,7 @@ function InventoryTable({items,records,incoming,week,patchRecord,getIncoming,tot
         <td className="sticky-col item-name"><b>{item.name}</b>{ins.length>0&&<span className="mini-badge">입고 {ins.length}건</span>}</td>
         <td>{item.unit}</td>
         <td><input className="num" value={r.opening_stock??""} onChange={e=>patchRecord(item.id,{opening_stock:e.target.value})}/></td>
-        <td className="incoming-cell"><button className="incoming-total" onClick={()=>addIncoming(item.id)}>+ {displayNum(total)}</button>{ins.length>0&&<div className="incoming-list">{ins.map(x=><div key={x.id}>{fmtDate(x.incoming_date)} · {x.quantity}<button onClick={()=>removeIncoming(x.id)}>×</button></div>)}</div>}</td>
+        <td className="incoming-cell"><button className="incoming-add" onClick={()=>addIncoming(item.id)}>＋ 입고 추가</button>{ins.length>0?<div className="incoming-list">{ins.map(x=><div key={x.id}><span>{fmtDate(x.incoming_date)}</span><b>{displayNum(x.quantity)}</b><button onClick={()=>removeIncoming(x.id)}>×</button></div>)}<strong>합계 {displayNum(total)}</strong></div>:<span className="no-incoming">-</span>}</td>
         {DAYS.map(d=><td key={d}><input className="num" value={r[d+"_usage"]??""} onChange={e=>patchRecord(item.id,{[d+"_usage"]:e.target.value})}/></td>)}
         <td className="stock-cell"><input className={`stock ${numeric(st)<0?"negative":numeric(st)===0?"zero":""}`} value={r.manual_stock!==""&&r.manual_stock!=null?r.manual_stock:(st==null?"직접 확인":displayNum(st))}
           onChange={e=>patchRecord(item.id,{manual_stock:e.target.value})}/>
