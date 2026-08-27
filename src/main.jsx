@@ -10,7 +10,7 @@ const STORAGE = {
   help: "rowoon_inventory_help_seen_v1"
 };
 
-const CATEGORIES = ["냉동식품", "냉장식품", "야채/채소"];
+const CATEGORIES = ["냉동식품", "냉장식품", "야채·채소", "부식자재"];
 const UNITS = ["kg","g","개","봉지","통","쪽","단","망","알","기타"];
 const STORAGE_METHODS = ["냉동","냉장","상온","기타"];
 const DAYS = ["monday","tuesday","wednesday","thursday","friday"];
@@ -29,14 +29,14 @@ const initialItems = [
   ["동치미육수","냉장식품","개","냉장"],["닭가슴살","냉장식품","개","냉장"],
   ["비엔나소시지 1kg","냉장식품","봉지","냉장"],["크래미 144g+72g","냉장식품","개","냉장"],
   ["굴소스","냉장식품","g","냉장"],
-  ["배추","야채/채소","통","냉장"],["파프리카","야채/채소","통","냉장"],
-  ["청양고추","야채/채소","개","냉장"],["대파","야채/채소","단","냉장"],
-  ["당근","야채/채소","개","냉장"],["양배추","야채/채소","통","냉장"],
-  ["피클","야채/채소","g","냉장"],["파슬리","야채/채소","g","냉장"],
-  ["양파","야채/채소","망(중)","상온"],["양파","야채/채소","개","상온"],
-  ["건포도","야채/채소","g","상온"]
+  ["배추","야채·채소","통","냉장"],["파프리카","야채·채소","통","냉장"],
+  ["청양고추","야채·채소","개","냉장"],["대파","야채·채소","단","냉장"],
+  ["당근","야채·채소","개","냉장"],["양배추","야채·채소","통","냉장"],
+  ["피클","야채·채소","g","냉장"],["파슬리","야채·채소","g","냉장"],
+  ["양파","야채·채소","망(중)","상온"],["양파","야채·채소","개","상온"],
+  ["건포도","야채·채소","g","상온"]
 ].map((x,i)=>({id:crypto.randomUUID(),name:x[0],category:x[1],unit:x[2],storage_method:x[3],
-  expiration_type:x[1]==="야채/채소"?"납품일/소비기한":"유통기한",active:true,sort_order:i,
+  expiration_type:x[1]==="야채·채소"?"납품일/소비기한":"유통기한",active:true,sort_order:i,
   created_at:new Date().toISOString(),updated_at:new Date().toISOString()}));
 
 function load(key, fallback) {
@@ -44,7 +44,9 @@ function load(key, fallback) {
 }
 function save(key, value) { localStorage.setItem(key, JSON.stringify(value)); }
 function uid(){return crypto.randomUUID();}
-function isoDate(d){return d.toISOString().slice(0,10)}
+function isoDate(d){
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+}
 function parseLocal(s){const [y,m,day]=s.split("-").map(Number); return new Date(y,m-1,day)}
 function mondayOf(date){
   const d=new Date(date); d.setHours(0,0,0,0);
@@ -79,7 +81,10 @@ function makeRecord(item, weekStart, opening=""){
     storage_method:item.storage_method,note:"",updated_at:new Date().toISOString()};
 }
 function App(){
-  const [items,setItems]=useState(()=>load(STORAGE.items,null)||initialItems);
+  const [items,setItems]=useState(()=>{
+    const saved=load(STORAGE.items,null);
+    return (saved||initialItems).map(i=>i.category==="야채/채소"?{...i,category:"야채·채소"}:i);
+  });
   const [weeks,setWeeks]=useState(()=>load(STORAGE.weeks,[]));
   const [records,setRecords]=useState(()=>load(STORAGE.records,[]));
   const [incoming,setIncoming]=useState(()=>load(STORAGE.incoming,[]));
@@ -131,7 +136,7 @@ function App(){
   function totalIncoming(itemId){return getIncoming(itemId).reduce((a,x)=>a+(numeric(x.quantity)??0),0)}
   function recordFor(item){return records.find(r=>r.weekly_record_id===week.start&&r.item_id===item.id)||makeRecord(item,week.start)}
   function effectiveStock(r){return r.manual_stock!==""&&r.manual_stock!=null?r.manual_stock:stockCalc(r)}
-  function expirationFor(item,r){return item.category==="야채/채소"?(r.consumption_date||""):(r.expiration_date||"")}
+  function expirationFor(item,r){return item.category==="야채·채소"?(r.consumption_date||""):(r.expiration_date||"")}
   function expiryStatus(s){
     if(!s)return "";
     const diff=Math.ceil((parseLocal(s)-new Date(new Date().toDateString()))/86400000);
@@ -162,6 +167,12 @@ function App(){
     setItems(prev=>prev.map(i=>i.id===data.id?{...i,...data,updated_at:new Date().toISOString()}:i));setModal(null);
   }
   function disableItem(id){setItems(prev=>prev.map(i=>i.id===id?{...i,active:false}:i));}
+  function deleteItem(item){
+    if(!confirm(`'${item.name}' 품목을 삭제할까요?\n해당 품목의 입력 내역도 함께 삭제됩니다.`)) return;
+    setItems(prev=>prev.filter(i=>i.id!==item.id));
+    setRecords(prev=>prev.filter(r=>r.item_id!==item.id));
+    setIncoming(prev=>prev.filter(x=>x.item_id!==item.id));
+  }
   function reorder(id,dir){
     const arr=[...items].sort((a,b)=>a.sort_order-b.sort_order),idx=arr.findIndex(i=>i.id===id),to=idx+dir;
     if(to<0||to>=arr.length)return;
@@ -203,9 +214,14 @@ function App(){
     <main className="container">
       <section className="title-row">
         <div><h1>이번 주 식자재 수불대장</h1><div className="range">{fmtRange(week)}</div></div>
-        <div className="week-controls">
-          <button onClick={()=>shiftWeek(-1)}>← 이전 주</button><button className="today" onClick={()=>setDate(isoDate(mondayOf(new Date())))}>이번 주</button><button onClick={()=>shiftWeek(1)}>다음 주 →</button>
-          <input aria-label="기준 날짜" type="date" value={date} onChange={e=>setDate(isoDate(mondayOf(parseLocal(e.target.value))))}/>
+        <div className="main-actions" aria-label="주요 기능">
+          <button onClick={()=>shiftWeek(-1)}>← 이전 주</button>
+          <button className="today" onClick={()=>setDate(isoDate(mondayOf(new Date())))}>이번 주</button>
+          <button onClick={()=>shiftWeek(1)}>다음 주 →</button>
+          <button className="primary" onClick={()=>setModal({type:"item",data:null})}>＋ 품목 추가</button>
+          <button onClick={copyLastWeek}>↻ 지난주 재고 불러오기</button>
+          <button onClick={printNow}>▣ 인쇄 / PDF 저장</button>
+          <input aria-label="기준 날짜" title="날짜로 주차 선택" type="date" value={date} onChange={e=>setDate(isoDate(mondayOf(parseLocal(e.target.value))))}/>
         </div>
       </section>
 
@@ -223,11 +239,9 @@ function App(){
         </div>
       </section>
 
-      <section className="actions"><button className="primary" onClick={()=>setModal({type:"item",data:null})}>＋ 품목 추가</button><button onClick={copyLastWeek}>↻ 지난주 재고 불러오기</button><button onClick={printNow}>▣ 인쇄 / PDF 저장</button></section>
-
       <InventoryTable items={visible} records={records} incoming={incoming} week={week} patchRecord={patchRecord}
         getIncoming={getIncoming} totalIncoming={totalIncoming} addIncoming={addIncoming} removeIncoming={removeIncoming}
-        expirationFor={expirationFor} expiryStatus={expiryStatus} effectiveStock={effectiveStock}/>
+        expirationFor={expirationFor} expiryStatus={expiryStatus} effectiveStock={effectiveStock} onDelete={deleteItem}/>
 
       <div className="footer-note">입력 내용은 이 브라우저에 자동 저장됩니다. 실제 재고가 계산값과 다르면 <b>재고현황</b>을 직접 수정할 수 있습니다.</div>
     </main>
@@ -242,11 +256,11 @@ function App(){
 
 function Summary({title,value,icon,onClick}){return <button className="summary-card" onClick={onClick}><span className="summary-icon">{icon}</span><span><small>{title}</small><strong>{value}</strong></span></button>}
 
-function InventoryTable({items,records,incoming,week,patchRecord,getIncoming,totalIncoming,addIncoming,removeIncoming,expirationFor,expiryStatus,effectiveStock}){
+function InventoryTable({items,records,incoming,week,patchRecord,getIncoming,totalIncoming,addIncoming,removeIncoming,expirationFor,expiryStatus,effectiveStock,onDelete}){
   return <div className="table-wrap"><table className="inventory">
     <thead><tr>
       <th className="sticky-col item-col">품목명</th><th>단위</th><th>기초재고<br/>(전주이월)</th><th>입고</th>
-      {DAY_LABELS.map(d=><th key={d}>{d} 사용량</th>)}<th>재고현황</th><th>유통기한<br/>/ 소비기한</th><th>보관방법</th><th>비고</th>
+      {DAY_LABELS.map(d=><th key={d}>{d} 사용량</th>)}<th>재고현황</th><th>유통기한<br/>/ 소비기한</th><th>보관방법</th><th>비고</th><th className="delete-col">삭제</th>
     </tr></thead>
     <tbody>{items.map(item=>{
       const r=records.find(x=>x.weekly_record_id===week.start&&x.item_id===item.id)||{};
@@ -263,11 +277,12 @@ function InventoryTable({items,records,incoming,week,patchRecord,getIncoming,tot
           {numeric(st)===0&&<span className="stock-badge zero-badge">재고 없음</span>}
           {numeric(st)<0&&<span className="stock-badge neg-badge">재고 확인</span>}
         </td>
-        <td className="date-cell"><input type="date" value={expirationFor(item,r)} onChange={e=>patchRecord(item.id,item.category==="야채/채소"?{consumption_date:e.target.value}:{expiration_date:e.target.value})}/>
+        <td className="date-cell"><input type="date" value={expirationFor(item,r)} onChange={e=>patchRecord(item.id,item.category==="야채·채소"?{consumption_date:e.target.value}:{expiration_date:e.target.value})}/>
           {status&&<span className={"expiry "+(status==="임박"?"near":status==="기한 지남"?"passed":"ok")}>{status}</span>}
         </td>
         <td><select value={r.storage_method||item.storage_method} onChange={e=>patchRecord(item.id,{storage_method:e.target.value})}>{STORAGE_METHODS.map(x=><option key={x}>{x}</option>)}</select></td>
         <td><input className="note" value={r.note??""} placeholder="메모" onChange={e=>patchRecord(item.id,{note:e.target.value})}/></td>
+        <td className="delete-cell"><button title={`${item.name} 삭제`} aria-label={`${item.name} 삭제`} onClick={()=>onDelete(item)}>삭제</button></td>
       </tr>
     })}</tbody>
   </table>{items.length===0&&<div className="empty">조건에 맞는 품목이 없습니다.</div>}</div>

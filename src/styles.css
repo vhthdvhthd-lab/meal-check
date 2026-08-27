@@ -2,3 +2,24 @@
 @media print{
   body{background:#fff}.topbar,.title-row .week-controls,.summary,.toolbar,.actions,.footer-note,.master-list+.footer-note{display:none!important}.container{max-width:none;margin:0;padding:0}.title-row{display:block;margin:0 0 10px}.title-row:before{content:"주간 식자재 수불 대장";display:block;text-align:center;font-size:18px;font-weight:800;margin-bottom:4px}.title-row:after{content:"";display:block}.title-row h1{display:none}.range{display:block;text-align:left;font-size:10px}.table-wrap{max-height:none;overflow:visible;border:0;border-radius:0;box-shadow:none}.inventory{min-width:0;width:100%;font-size:7px;table-layout:fixed}.inventory th,.inventory td{padding:4px 2px;border-color:#999;white-space:normal}.inventory thead th{position:static;background:#eee;color:#111;height:auto}.inventory .sticky-col{position:static}.inventory input,.inventory select{border:0;height:auto;width:100%;padding:0;background:transparent;font-size:7px}.inventory .item-col{min-width:0;width:12%}.inventory .note{width:100%}.incoming-list,.mini-badge,.manual,.stock-badge,.expiry{display:none!important}.inventory tr{break-inside:avoid;page-break-inside:avoid}thead{display:table-header-group}@page{size:A4 landscape;margin:10mm 8mm 10mm}.table-wrap:after{content:"로운주간이용센터";display:block;text-align:right;margin-top:8px;font-weight:700;font-size:8px}
 }
+
+/* Main-screen quick actions and item deletion */
+.main-actions{display:flex;gap:7px;align-items:center;justify-content:flex-end;flex-wrap:wrap}
+.main-actions .today,.main-actions .primary{background:#172955;color:#fff;border-color:#172955;font-weight:700}
+.main-actions input{height:40px;border:1px solid #dfe3eb;border-radius:10px;padding:0 8px;max-width:145px}
+.delete-col{width:64px}
+.delete-cell button{padding:6px 9px;color:#b14f62;border-color:#efd6dc;background:#fff}
+.delete-cell button:hover{background:#fff1f4}
+
+@media(max-width:1100px){
+  .title-row{align-items:flex-start;flex-direction:column}
+  .main-actions{justify-content:flex-start}
+}
+@media(max-width:900px){
+  .main-actions{width:100%}
+  .main-actions button{flex:1 1 auto}
+  .main-actions input{flex:1 1 145px}
+}
+@media print{
+  .title-row .main-actions,.delete-col,.delete-cell{display:none!important}
+}
