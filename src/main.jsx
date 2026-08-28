@@ -172,7 +172,7 @@ function App(){
   }
 
   const visible=useMemo(()=>activeItems.filter(i=>{
-    if(category!=="전체"&&i.category!==category)return false;
+    if(filter!=="기한 임박"&&category!=="전체"&&i.category!==category)return false;
     if(search&&!i.name.toLowerCase().includes(search.toLowerCase()))return false;
     const r=recordFor(i), st=effectiveStock(r), inc=totalIncoming(i.id);
     if(filter==="이번 주 입고"&&inc<=0)return false;
@@ -260,7 +260,7 @@ function App(){
     <main className="container">
       <section className="title-row">
         <div><h1>이번 주 식자재 수불대장</h1><div className="range">{fmtRange(week)}</div><div className="print-category">{category}</div></div>
-        <div className="title-right-stack"><div className="title-utility"><button onClick={printNow}>▣ 인쇄 / PDF 저장</button><input className="title-date" aria-label="날짜 선택" type="date" value={calendarDate} onChange={e=>{if(!e.target.value)return;setCalendarDate(e.target.value);setDate(isoDate(mondayOf(parseLocal(e.target.value))))}}/></div><div className="filters"><div className="search">⌕<input placeholder="품목 검색" value={search} onChange={e=>setSearch(e.target.value)}/></div>{["전체","이번 주 입고","재고 없음","재고 확인"].map(f=><button className={filter===f?"filter active-filter":"filter"} onClick={()=>setFilter(f)} key={f}>{f}</button>)}</div></div>
+        <div className="title-right-stack"><div className="title-utility"><button onClick={printNow}>🖨 인쇄 / PDF 저장</button><input className="title-date" aria-label="날짜 선택" type="date" value={calendarDate} onChange={e=>{if(!e.target.value)return;setCalendarDate(e.target.value);setDate(isoDate(mondayOf(parseLocal(e.target.value))))}}/></div><div className="filters"><div className="search">⌕<input placeholder="품목 검색" value={search} onChange={e=>setSearch(e.target.value)}/></div>{["전체","이번 주 입고","재고 없음","재고 확인"].map(f=><button className={filter===f?"filter active-filter":"filter"} onClick={()=>setFilter(f)} key={f}>{f}</button>)}</div></div>
         <section className="print-approval" aria-label="결재란">
           <div className="approval-title">결<br/><br/>재</div>
           {['담 당','팀 장','국 장','센 터 장'].map(role=><div className="approval-cell" key={role}><span>{role}</span><i></i></div>)}
@@ -271,7 +271,7 @@ function App(){
         <Summary title="전체 품목" value={summary.total} icon="▦" active={filter==="전체"} onClick={()=>setFilter("전체")}/>
         <Summary title="재고 없음" value={summary.no} icon="○" active={filter==="재고 없음"} onClick={()=>setFilter("재고 없음")}/>
         <Summary title="재고 확인" value={summary.check} icon="!" active={filter==="재고 확인"} onClick={()=>setFilter("재고 확인")}/>
-        <Summary title="기한 임박" value={summary.near} icon="◷" active={filter==="기한 임박"} onClick={()=>setFilter("기한 임박")}/>
+        <Summary title="기한 임박" value={summary.near} icon="◷" emphasis="expiry" active={filter==="기한 임박"} onClick={()=>setFilter("기한 임박")}/>
       </div>
 
       <section className="control-panel">
@@ -285,9 +285,11 @@ function App(){
         </div>
       </section>
 
+      {filter==="기한 임박"&&<div className="expiry-filter-note">전체 카테고리의 기한 임박 품목을 표시 중입니다.</div>}
+
       <InventoryTable items={visible} records={records} incoming={incoming} week={week} patchRecord={patchRecord} patchItem={patchItem}
         getIncoming={getIncoming} totalIncoming={totalIncoming} patchIncoming={patchIncoming}
-        expirationFor={expirationFor} expiryStatus={expiryStatus} effectiveStock={effectiveStock} onDelete={deleteItem}/>
+        expirationFor={expirationFor} expiryStatus={expiryStatus} effectiveStock={effectiveStock} onDelete={deleteItem} showCategory={filter==="기한 임박"}/>
 
       <div className="print-logo"><img src="/rowoon-center-logo.png" alt="사회적협동조합 로운주간이용센터"/></div>
 
@@ -301,9 +303,9 @@ function App(){
   function shiftWeek(n){const d=parseLocal(week.start);d.setDate(d.getDate()+n*7);setDate(isoDate(d));const shown=parseLocal(calendarDate);shown.setDate(shown.getDate()+n*7);setCalendarDate(isoDate(shown))}
 }
 
-function Summary({title,value,icon,onClick,active}){return <button className={`summary-card ${active?"summary-active":""}`} onClick={onClick}><span className="summary-icon">{icon}</span><span><small>{title}</small><strong>{value}</strong></span></button>}
+function Summary({title,value,icon,onClick,active,emphasis}){return <button className={`summary-card ${active?"summary-active":""} ${emphasis?`summary-${emphasis}`:""}`} onClick={onClick}><span className="summary-icon">{icon}</span><span><small>{title}</small><strong>{value}</strong></span></button>}
 
-function InventoryTable({items,records,incoming,week,patchRecord,patchItem,getIncoming,totalIncoming,patchIncoming,expirationFor,expiryStatus,effectiveStock,onDelete}){
+function InventoryTable({items,records,incoming,week,patchRecord,patchItem,getIncoming,totalIncoming,patchIncoming,expirationFor,expiryStatus,effectiveStock,onDelete,showCategory}){
   return <div className="table-wrap"><table className="inventory">
     <thead><tr>
       <th className="sticky-col item-col">품목명</th><th>단위</th><th>기초재고<br/>(전주이월)</th><th>입고일자</th><th>입고수량</th>
@@ -313,7 +315,7 @@ function InventoryTable({items,records,incoming,week,patchRecord,patchItem,getIn
       const r=records.find(x=>x.weekly_record_id===week.start&&x.item_id===item.id)||{};
       const ins=getIncoming(item.id), total=totalIncoming(item.id), st=effectiveStock(r), status=expiryStatus(expirationFor(item,r));
       return <tr key={item.id}>
-        <td className="sticky-col item-name"><b>{item.name}</b>{ins.length>0&&<span className="mini-badge">입고 {ins.length}건</span>}</td>
+        <td className="sticky-col item-name"><b>{item.name}</b>{showCategory&&<span className="item-category-badge">{item.category}</span>}{ins.length>0&&<span className="mini-badge">입고 {ins.length}건</span>}</td>
         <td><input className="unit-input" value={item.unit||""} placeholder="단위" onChange={e=>patchItem(item.id,{unit:e.target.value})}/></td>
         <td><input className="num" value={r.opening_stock??""} onChange={e=>patchRecord(item.id,{opening_stock:e.target.value})}/></td>
         <td className={`incoming-date-cell ${ins[0]?.quantity&&!ins[0]?.incoming_date?"date-required":""}`}><input className="screen-date" aria-label={`${item.name} 입고일자`} title={ins[0]?.quantity&&!ins[0]?.incoming_date?"입고일자를 입력하세요":"입고일자"} type="date" required value={ins[0]?.incoming_date||""} onChange={e=>patchIncoming(item.id,{incoming_date:e.target.value})}/><span className="print-date">{ins[0]?.incoming_date?fmtDate(ins[0].incoming_date):""}</span></td>

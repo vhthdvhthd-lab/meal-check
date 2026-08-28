@@ -281,3 +281,20 @@ button:hover{background:#f3f4f6}
 @media print{
   .title-right-stack{display:none!important}
 }
+
+/* Expiry overview across every category */
+.summary-expiry{border-color:#f59e0b!important;background:#fffbeb!important}
+.summary-expiry .summary-icon{background:#fef3c7!important;color:#b45309!important}
+.summary-expiry small,.summary-expiry strong{color:#92400e!important}
+.summary-expiry.summary-active{border-color:#ea580c!important;background:#fff7ed!important;box-shadow:0 0 0 2px #fed7aa inset!important}
+.item-category-badge{display:inline-block;margin-top:5px;padding:2px 7px;border-radius:999px;background:#eef2ff;color:#4338ca;font-size:10px;font-weight:700}
+.expiry-filter-note{margin:0 0 10px;padding:10px 14px;border:1px solid #fbbf24;border-radius:10px;background:#fffbeb;color:#92400e;font-size:13px;font-weight:700}
+
+@media print{
+  .title-row:before{left:0!important;right:auto!important;width:72%!important;text-align:center!important}
+  .inventory,.inventory th,.inventory td{font-size:11px!important}
+  .inventory input,.inventory select{font-size:11px!important}
+  .print-date{font-size:10px!important}
+  .item-category-badge{font-size:8px!important;background:#fff!important;color:#000!important;border:1px solid #999;padding:1px 4px}
+  .expiry-filter-note{display:none!important}
+}
