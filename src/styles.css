@@ -298,3 +298,14 @@ button:hover{background:#f3f4f6}
   .item-category-badge{font-size:8px!important;background:#fff!important;color:#000!important;border:1px solid #999;padding:1px 4px}
   .expiry-filter-note{display:none!important}
 }
+
+@media print{
+  .title-row:before{left:8mm!important;width:72%!important}
+  .table-wrap{width:calc(100% - 3mm)!important;margin-left:0!important;margin-right:3mm!important}
+  .inventory{width:100%!important;max-width:100%!important;font-size:11.5px!important}
+  .inventory th,.inventory td{font-size:11.5px!important;vertical-align:middle!important}
+  .inventory input,.inventory select{font-size:11.5px!important;text-align:center!important;text-align-last:center!important}
+  .print-date{font-size:10.5px!important}
+  .inventory td:nth-child(2),.inventory th:nth-child(2){text-align:center!important}
+  .inventory td:nth-child(2) .unit-input{display:block!important;width:100%!important;margin:0 auto!important;padding:0!important;text-align:center!important;text-align-last:center!important}
+}

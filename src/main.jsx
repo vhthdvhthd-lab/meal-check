@@ -115,11 +115,13 @@ function App(){
     setRecords(prev=>{
       let changed=false, next=[...prev];
       activeItems.forEach(item=>{
-        if(!next.some(r=>r.weekly_record_id===week.start&&r.item_id===item.id)){
-          const prior=next.find(r=>r.weekly_record_id===previousWeek(week.start)&&r.item_id===item.id);
-          const priorEntry=prior?incoming.find(x=>x.weekly_record_id===prior.weekly_record_id&&x.item_id===prior.item_id):null;
-          const priorIncoming=priorEntry?(numeric(priorEntry.quantity)??0):0;
-          const opening=prior ? (prior.manual_stock!==""?prior.manual_stock:(stockCalc(prior,priorIncoming)??prior.current_stock??"")) : "";
+        const currentIndex=next.findIndex(r=>r.weekly_record_id===week.start&&r.item_id===item.id);
+        const prior=next.find(r=>r.weekly_record_id===previousWeek(week.start)&&r.item_id===item.id);
+        const priorEntry=prior?incoming.find(x=>x.weekly_record_id===prior.weekly_record_id&&x.item_id===prior.item_id):null;
+        const priorIncoming=priorEntry?(numeric(priorEntry.quantity)??0):0;
+        const carried=prior ? (prior.manual_stock!==""?prior.manual_stock:(stockCalc(prior,priorIncoming)??prior.current_stock??"")) : "";
+        const opening=prior&&numeric(carried)===0?"":carried;
+        if(currentIndex<0){
           const created=makeRecord(item,week.start,opening);
           next.push(prior?{...created,
             expiration_date:prior.expiration_date||"",
@@ -128,6 +130,9 @@ function App(){
             storage_method:prior.storage_method||item.storage_method,
             note:prior.note||""
           }:created);
+          changed=true;
+        }else if(prior&&next[currentIndex].opening_stock!==opening){
+          next[currentIndex]={...next[currentIndex],opening_stock:opening,updated_at:new Date().toISOString()};
           changed=true;
         }
       });
@@ -227,7 +232,8 @@ function App(){
       if(!p)return r;
       const priorEntry=incoming.find(x=>x.weekly_record_id===prevStart&&x.item_id===p.item_id);
       const priorIncoming=priorEntry?(numeric(priorEntry.quantity)??0):0;
-      const v=p.manual_stock!==""&&p.manual_stock!=null?p.manual_stock:(stockCalc(p,priorIncoming)??p.current_stock??"");
+      const calculated=p.manual_stock!==""&&p.manual_stock!=null?p.manual_stock:(stockCalc(p,priorIncoming)??p.current_stock??"");
+      const v=numeric(calculated)===0?"":calculated;
       return {...r,opening_stock:v,updated_at:new Date().toISOString()};
     }));
     setIncoming(prev=>{
