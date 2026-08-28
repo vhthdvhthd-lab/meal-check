@@ -118,7 +118,31 @@ function App(){
           const prior=next.find(r=>r.weekly_record_id===previousWeek(week.start)&&r.item_id===item.id);
           const priorEntry=prior?incoming.find(x=>x.weekly_record_id===prior.weekly_record_id&&x.item_id===prior.item_id):null;
           const priorIncoming=priorEntry?(numeric(priorEntry.quantity)??0):0;
-          next.push(makeRecord(item,week.start,prior ? (prior.manual_stock!==""?prior.manual_stock:(stockCalc(prior,priorIncoming)??prior.current_stock??"")) : ""));
+          const opening=prior ? (prior.manual_stock!==""?prior.manual_stock:(stockCalc(prior,priorIncoming)??prior.current_stock??"")) : "";
+          const created=makeRecord(item,week.start,opening);
+          next.push(prior?{...created,
+            expiration_date:prior.expiration_date||"",
+            delivery_date:prior.delivery_date||"",
+            consumption_date:prior.consumption_date||"",
+            storage_method:prior.storage_method||item.storage_method,
+            note:prior.note||""
+          }:created);
+          changed=true;
+        }
+      });
+      return changed?next:prev;
+    });
+    setIncoming(prev=>{
+      let changed=false, next=[...prev];
+      activeItems.forEach(item=>{
+        const prior=prev.find(x=>x.weekly_record_id===previousWeek(week.start)&&x.item_id===item.id&&x.incoming_date);
+        if(!prior)return;
+        const current=next.find(x=>x.weekly_record_id===week.start&&x.item_id===item.id);
+        if(!current){
+          next.push({id:uid(),weekly_record_id:week.start,item_id:item.id,incoming_date:prior.incoming_date,quantity:"",created_at:new Date().toISOString()});
+          changed=true;
+        }else if(!current.incoming_date){
+          next=next.map(x=>x.id===current.id?{...x,incoming_date:prior.incoming_date}:x);
           changed=true;
         }
       });
@@ -153,6 +177,7 @@ function App(){
     if(filter==="이번 주 입고"&&inc<=0)return false;
     if(filter==="재고 없음"&&numeric(st)!==0)return false;
     if(filter==="재고 확인"&&!(numeric(st)<0))return false;
+    if(filter==="기한 임박"&&expiryStatus(expirationFor(i,r))!=="임박")return false;
     return true;
   }),[activeItems,category,search,filter,records,incoming,week.start]);
 
@@ -173,6 +198,7 @@ function App(){
     setItems(prev=>prev.map(i=>i.id===id?{...i,...patch,updated_at:new Date().toISOString()}:i));
   }
   function disableItem(id){setItems(prev=>prev.map(i=>i.id===id?{...i,active:false}:i));}
+  function setItemActive(id,active){setItems(prev=>prev.map(i=>i.id===id?{...i,active,updated_at:new Date().toISOString()}:i));}
   function deleteItem(item){
     if(!confirm(`'${item.name}' 품목을 삭제할까요?\n해당 품목의 입력 내역도 함께 삭제됩니다.`)) return;
     setItems(prev=>prev.filter(i=>i.id!==item.id));
@@ -219,8 +245,9 @@ function App(){
   }
   function printNow(){window.print()}
 
-  if(page==="items") return <ItemPage items={items} onBack={()=>setPage("weekly")} onAdd={()=>setModal({type:"item",data:null})}
-    onEdit={i=>setModal({type:"item",data:i})} onDisable={disableItem} onReorder={reorder}/>;
+  if(page==="items") return <><ItemPage items={items} onBack={()=>setPage("weekly")} onAdd={()=>setModal({type:"item",data:null})}
+    onEdit={i=>setModal({type:"item",data:i})} onToggle={setItemActive} onDelete={deleteItem} onReorder={reorder}/>
+    {modal?.type==="item"&&<ItemModal data={modal.data} defaults={modal.defaults} onClose={()=>setModal(null)} onSave={modal.data?updateItem:addItem}/>}</>;
   if(page==="history") return <HistoryPage weeks={weeks} onBack={()=>setPage("weekly")} onOpen={s=>{setDate(s);setPage("weekly")}}/>;
 
   return <div className="app">
@@ -231,16 +258,7 @@ function App(){
 
     <main className="container">
       <section className="title-row">
-        <div><h1>이번 주 식자재 수불대장</h1><div className="range">{fmtRange(week)}</div></div>
-        <div className="main-actions" aria-label="주요 기능">
-          <button onClick={()=>shiftWeek(-1)}>← 이전 주</button>
-          <button className="today" onClick={()=>setDate(isoDate(mondayOf(new Date())))}>이번 주</button>
-          <button onClick={()=>shiftWeek(1)}>다음 주 →</button>
-          <button className="primary" onClick={()=>setModal({type:"item",data:null,defaults:{category}})}>＋ 품목 추가</button>
-          <button onClick={copyLastWeek}>↻ 지난주 재고 불러오기</button>
-          <button onClick={printNow}>▣ 인쇄 / PDF 저장</button>
-          <input aria-label="기준 날짜" title="날짜로 주차 선택" type="date" value={date} onChange={e=>setDate(isoDate(mondayOf(parseLocal(e.target.value))))}/>
-        </div>
+        <div><h1>이번 주 식자재 수불대장</h1><div className="range">{fmtRange(week)}</div><div className="print-category">{category}</div></div>
         <section className="print-approval" aria-label="결재란">
           <div className="approval-title">결<br/>재</div>
           {['담당','팀장','국장','센터장'].map(role=><div className="approval-cell" key={role}><span>{role}</span><i></i></div>)}
@@ -248,16 +266,26 @@ function App(){
       </section>
 
       <div className="summary">
-        <Summary title="전체 품목" value={summary.total} icon="▦"/>
-        <Summary title="재고 없음" value={summary.no} icon="○" onClick={()=>setFilter("재고 없음")}/>
-        <Summary title="재고 확인" value={summary.check} icon="!" onClick={()=>setFilter("재고 확인")}/>
-        <Summary title="기한 임박" value={summary.near} icon="◷"/>
+        <Summary title="전체 품목" value={summary.total} icon="▦" active={filter==="전체"} onClick={()=>setFilter("전체")}/>
+        <Summary title="재고 없음" value={summary.no} icon="○" active={filter==="재고 없음"} onClick={()=>setFilter("재고 없음")}/>
+        <Summary title="재고 확인" value={summary.check} icon="!" active={filter==="재고 확인"} onClick={()=>setFilter("재고 확인")}/>
+        <Summary title="기한 임박" value={summary.near} icon="◷" active={filter==="기한 임박"} onClick={()=>setFilter("기한 임박")}/>
       </div>
 
-      <section className="toolbar">
+      <section className="control-panel">
         <div className="tabs">{CATEGORIES.map(c=><button className={category===c?"active":""} onClick={()=>setCategory(c)} key={c}>{c}</button>)}</div>
-        <div className="filters"><div className="search">⌕<input placeholder="품목 검색" value={search} onChange={e=>setSearch(e.target.value)}/></div>
-          {["전체","이번 주 입고","재고 없음","재고 확인"].map(f=><button className={filter===f?"filter active-filter": "filter"} onClick={()=>setFilter(f)} key={f}>{f}</button>)}
+        <div className="main-actions" aria-label="주요 기능">
+          <button onClick={()=>shiftWeek(-1)}>← 이전 주</button>
+          <button className="today" onClick={()=>setDate(isoDate(mondayOf(new Date())))}>이번 주</button>
+          <button onClick={()=>shiftWeek(1)}>다음 주 →</button>
+          <button className="primary" onClick={()=>setModal({type:"item",data:null,defaults:{category}})}>＋ 품목 추가</button>
+          <button onClick={copyLastWeek}>↻ 지난주 재고 불러오기</button>
+        </div>
+        <div className="right-controls">
+          <div className="utility-actions"><button onClick={printNow}>▣ 인쇄 / PDF 저장</button><input aria-label="기준 날짜" title="날짜로 주차 선택" type="date" value={date} onChange={e=>setDate(isoDate(mondayOf(parseLocal(e.target.value))))}/></div>
+          <div className="filters"><div className="search">⌕<input placeholder="품목 검색" value={search} onChange={e=>setSearch(e.target.value)}/></div>
+            {["전체","이번 주 입고","재고 없음","재고 확인"].map(f=><button className={filter===f?"filter active-filter": "filter"} onClick={()=>setFilter(f)} key={f}>{f}</button>)}
+          </div>
         </div>
       </section>
 
@@ -277,7 +305,7 @@ function App(){
   function shiftWeek(n){const d=parseLocal(week.start);d.setDate(d.getDate()+n*7);setDate(isoDate(d))}
 }
 
-function Summary({title,value,icon,onClick}){return <button className="summary-card" onClick={onClick}><span className="summary-icon">{icon}</span><span><small>{title}</small><strong>{value}</strong></span></button>}
+function Summary({title,value,icon,onClick,active}){return <button className={`summary-card ${active?"summary-active":""}`} onClick={onClick}><span className="summary-icon">{icon}</span><span><small>{title}</small><strong>{value}</strong></span></button>}
 
 function InventoryTable({items,records,incoming,week,patchRecord,patchItem,getIncoming,totalIncoming,patchIncoming,expirationFor,expiryStatus,effectiveStock,onDelete}){
   return <div className="table-wrap"><table className="inventory">
@@ -330,13 +358,13 @@ function IncomingModal({item,data,onClose,onSave}){const [form,setForm]=useState
 </Modal>}
 function Modal({title,onClose,children}){return <div className="overlay"><div className="modal"><div className="modal-head"><h2>{title}</h2><button onClick={onClose}>×</button></div>{children}</div></div>}
 
-function ItemPage({items,onBack,onAdd,onEdit,onDisable,onReorder}){
+function ItemPage({items,onBack,onAdd,onEdit,onToggle,onDelete,onReorder}){
   const [q,setQ]=useState(""),[cat,setCat]=useState("전체");
   const list=items.filter(i=>(cat==="전체"||i.category===cat)&&i.name.includes(q)).sort((a,b)=>a.sort_order-b.sort_order);
   return <div className="app"><header className="topbar"><div className="brand"><div className="star">✦</div><div><div className="brand-name">로운주간이용센터</div><div className="brand-sub">품목 관리</div></div></div><button className="ghost" onClick={onBack}>← 주간 수불대장</button></header>
   <main className="container"><div className="page-head"><div><h1>품목 관리</h1><p>품목은 한 번 등록하면 매주 자동으로 나타납니다.</p></div><button className="primary" onClick={onAdd}>＋ 품목 추가</button></div>
   <div className="toolbar simple"><div className="search">⌕<input placeholder="품목 검색" value={q} onChange={e=>setQ(e.target.value)}/></div><div className="tabs">{["전체",...CATEGORIES].map(c=><button className={cat===c?"active":""} onClick={()=>setCat(c)} key={c}>{c}</button>)}</div></div>
-  <div className="master-list">{list.map((i,idx)=><div className="master-row" key={i.id}><div className="order"><button onClick={()=>onReorder(i.id,-1)}>↑</button><button onClick={()=>onReorder(i.id,1)}>↓</button></div><div className="master-name"><b>{i.name}</b><span>{i.category}</span></div><span>{i.unit}</span><span>{i.storage_method}</span><span className={i.active?"status-on":"status-off"}>{i.active?"사용":"사용 안 함"}</span><button onClick={()=>onEdit(i)}>수정</button>{i.active&&<button className="danger-text" onClick={()=>{if(confirm("이 품목을 사용 안 함으로 변경할까요?"))onDisable(i.id)}}>사용 안 함</button>}</div>)}</div></main></div>
+  <div className="master-list">{list.map(i=><div className={`master-row ${i.active?"":"inactive-row"}`} key={i.id}><div className="order"><button title="위로" onClick={()=>onReorder(i.id,-1)}>↑</button><button title="아래로" onClick={()=>onReorder(i.id,1)}>↓</button></div><div className="master-name"><b>{i.name}</b><span>{i.category}</span></div><span className="master-unit">{i.unit||"단위 미입력"}</span><span>{i.storage_method}</span><span className={i.active?"status-on":"status-off"}>{i.active?"사용 중":"숨김"}</span><div className="master-actions"><button onClick={()=>onEdit(i)}>수정</button><button onClick={()=>onToggle(i.id,!i.active)}>{i.active?"숨기기":"다시 사용"}</button><button className="danger-text" onClick={()=>onDelete(i)}>삭제</button></div></div>)}{!list.length&&<div className="empty">조건에 맞는 품목이 없습니다.</div>}</div></main></div>
 }
 function HistoryPage({weeks,onBack,onOpen}){const list=[...weeks].sort((a,b)=>b.start.localeCompare(a.start));return <div className="app"><header className="topbar"><div className="brand"><div className="star">✦</div><div><div className="brand-name">로운주간이용센터</div><div className="brand-sub">주간 기록</div></div></div><button className="ghost" onClick={onBack}>← 주간 수불대장</button></header><main className="container"><div className="page-head"><div><h1>주간 기록</h1><p>작성했던 주간 수불대장을 다시 열 수 있습니다.</p></div></div><div className="history-list">{list.map(w=><button key={w.start} onClick={()=>onOpen(w.start)}><span>주간 수불대장</span><b>{fmtDate(w.start)} ~ {fmtDate(w.end)}</b><span>열기 →</span></button>)}{!list.length&&<div className="empty">아직 작성된 주간 기록이 없습니다.</div>}</div></main></div>}
 function Help({onClose}){return <div className="overlay"><div className="help modal"><div className="modal-head"><h2>처음 사용하시나요?</h2><button onClick={onClose}>×</button></div><ol><li>품목은 한 번만 등록하면 됩니다.</li><li>주차를 열면 월~금이 자동으로 계산됩니다.</li><li>지난주 재고현황이 이번 주 기초재고로 자동 이월됩니다.</li><li>입고와 월~금 사용량을 입력하세요.</li><li>재고현황은 자동 계산되며 실제 재고와 다르면 직접 수정할 수 있습니다.</li><li>오른쪽 위 <b>인쇄 / PDF 저장</b>으로 A4 문서를 만들 수 있습니다.</li></ol><div className="modal-actions"><button className="primary" onClick={onClose}>확인</button></div></div></div>}

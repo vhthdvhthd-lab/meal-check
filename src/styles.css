@@ -81,6 +81,7 @@
 .incoming-direct.date-required input[type="date"]{border-color:#d65a69;background:#fff5f6}
 .incoming-qty{text-align:right}
 .print-date{display:none}
+.print-category{display:none}
 
 @media print{
   @page{size:A4 landscape;margin:7mm 7mm 9mm}
@@ -116,4 +117,47 @@
   .item-name{text-align:center!important;padding-left:2px!important;padding-right:2px!important}
   .incoming-date-cell,.incoming-qty-cell{min-width:0!important}
   .incoming-qty{width:100%!important;text-align:center!important}
+}
+
+@media print{
+  .print-category{display:block!important;text-align:left;color:#000!important;font-size:13px!important;font-weight:800;margin-top:4px}
+  .inventory th,.inventory td,.inventory input,.inventory select,.inventory .print-date{text-align:center!important}
+  .inventory input{padding-left:0!important;padding-right:0!important}
+}
+
+/* Easier main controls */
+.summary-card.summary-active{border-color:#d990b2;background:#fff6fa;box-shadow:0 0 0 2px #f6dce8 inset}
+.control-panel{display:grid;grid-template-columns:auto minmax(470px,1fr) auto;align-items:end;gap:18px;background:#fff;border:1px solid #e8ebf1;border-radius:14px;padding:14px;margin-bottom:12px}
+.control-panel>.tabs{align-self:center}
+.control-panel>.main-actions{justify-content:center;align-self:center}
+.right-controls{display:flex;flex-direction:column;align-items:flex-end;gap:9px}
+.utility-actions{display:flex;justify-content:flex-end;gap:7px;align-items:center}
+.utility-actions input{height:40px;border:1px solid #dfe3eb;border-radius:10px;padding:0 10px;color:#172955;background:#fff}
+.right-controls .filters{flex-wrap:nowrap}
+.right-controls .search{min-width:210px}
+
+/* Item management actions stay visible and editable */
+.master-row{grid-template-columns:70px minmax(180px,1.8fr) 110px 90px 85px auto}
+.master-actions{display:flex;justify-content:flex-end;gap:6px;flex-wrap:wrap}
+.master-actions button{padding:7px 10px}
+.inactive-row{background:#fafbfc;color:#7e8797}
+.inactive-row .master-name{opacity:.72}
+.master-unit{color:#5e6b81}
+
+@media(max-width:1400px){
+  .control-panel{grid-template-columns:1fr 1fr}
+  .control-panel>.main-actions{grid-column:1/-1;grid-row:1;justify-content:center}
+  .control-panel>.tabs{grid-column:1;grid-row:2}
+  .right-controls{grid-column:2;grid-row:2}
+}
+@media(max-width:900px){
+  .control-panel{display:flex;flex-direction:column;align-items:stretch}
+  .control-panel>.main-actions,.right-controls,.utility-actions,.right-controls .filters{width:100%;justify-content:flex-start;align-items:stretch;flex-wrap:wrap}
+  .right-controls .search{width:100%}
+  .master-row{display:grid;grid-template-columns:58px 1fr 85px;gap:9px}
+  .master-row>*{display:block!important}
+  .master-row .master-actions{display:flex!important;grid-column:1/-1;justify-content:flex-end;border-top:1px solid #edf0f4;padding-top:9px}
+}
+@media print{
+  .control-panel{display:none!important}
 }
