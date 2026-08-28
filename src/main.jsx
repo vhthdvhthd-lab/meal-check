@@ -90,6 +90,7 @@ function App(){
   const [records,setRecords]=useState(()=>load(STORAGE.records,[]));
   const [incoming,setIncoming]=useState(()=>load(STORAGE.incoming,[]));
   const [date,setDate]=useState(()=>isoDate(mondayOf(new Date())));
+  const [calendarDate,setCalendarDate]=useState(()=>isoDate(new Date()));
   const [category,setCategory]=useState(CATEGORIES[0]);
   const [filter,setFilter]=useState("전체");
   const [search,setSearch]=useState("");
@@ -248,7 +249,7 @@ function App(){
   if(page==="items") return <><ItemPage items={items} onBack={()=>setPage("weekly")} onAdd={()=>setModal({type:"item",data:null})}
     onEdit={i=>setModal({type:"item",data:i})} onToggle={setItemActive} onDelete={deleteItem} onReorder={reorder}/>
     {modal?.type==="item"&&<ItemModal data={modal.data} defaults={modal.defaults} onClose={()=>setModal(null)} onSave={modal.data?updateItem:addItem}/>}</>;
-  if(page==="history") return <HistoryPage weeks={weeks} onBack={()=>setPage("weekly")} onOpen={s=>{setDate(s);setPage("weekly")}}/>;
+  if(page==="history") return <HistoryPage weeks={weeks} onBack={()=>setPage("weekly")} onOpen={s=>{setDate(s);setCalendarDate(s);setPage("weekly")}}/>;
 
   return <div className="app">
     <header className="topbar">
@@ -259,7 +260,7 @@ function App(){
     <main className="container">
       <section className="title-row">
         <div><h1>이번 주 식자재 수불대장</h1><div className="range">{fmtRange(week)}</div><div className="print-category">{category}</div></div>
-        <div className="title-utility"><button onClick={printNow}>▣ 인쇄 / PDF 저장</button><div className="today-display"><span>오늘</span><b>{fmtDate(isoDate(new Date()))}</b></div></div>
+        <div className="title-right-stack"><div className="title-utility"><button onClick={printNow}>▣ 인쇄 / PDF 저장</button><input className="title-date" aria-label="날짜 선택" type="date" value={calendarDate} onChange={e=>{if(!e.target.value)return;setCalendarDate(e.target.value);setDate(isoDate(mondayOf(parseLocal(e.target.value))))}}/></div><div className="filters"><div className="search">⌕<input placeholder="품목 검색" value={search} onChange={e=>setSearch(e.target.value)}/></div>{["전체","이번 주 입고","재고 없음","재고 확인"].map(f=><button className={filter===f?"filter active-filter":"filter"} onClick={()=>setFilter(f)} key={f}>{f}</button>)}</div></div>
         <section className="print-approval" aria-label="결재란">
           <div className="approval-title">결<br/><br/>재</div>
           {['담 당','팀 장','국 장','센 터 장'].map(role=><div className="approval-cell" key={role}><span>{role}</span><i></i></div>)}
@@ -277,13 +278,10 @@ function App(){
         <div className="tabs">{CATEGORIES.map(c=><button className={category===c?"active":""} onClick={()=>setCategory(c)} key={c}>{c}</button>)}</div>
         <div className="main-actions" aria-label="주요 기능">
           <button onClick={()=>shiftWeek(-1)}>← 이전 주</button>
-          <button className="today" onClick={()=>setDate(isoDate(mondayOf(new Date())))}>이번 주</button>
+          <button className="today" onClick={()=>{setDate(isoDate(mondayOf(new Date())));setCalendarDate(isoDate(new Date()))}}>이번 주</button>
           <button onClick={()=>shiftWeek(1)}>다음 주 →</button>
           <button onClick={copyLastWeek}>↻ 지난주 재고 불러오기</button>
           <button className="primary" onClick={()=>setModal({type:"item",data:null,defaults:{category}})}>＋ 품목 추가</button>
-        </div>
-        <div className="filters"><div className="search">⌕<input placeholder="품목 검색" value={search} onChange={e=>setSearch(e.target.value)}/></div>
-          {["전체","이번 주 입고","재고 없음","재고 확인"].map(f=><button className={filter===f?"filter active-filter": "filter"} onClick={()=>setFilter(f)} key={f}>{f}</button>)}
         </div>
       </section>
 
@@ -300,7 +298,7 @@ function App(){
     {help&&<Help onClose={()=>{setHelp(false);save(STORAGE.help,true)}}/>}
   </div>;
 
-  function shiftWeek(n){const d=parseLocal(week.start);d.setDate(d.getDate()+n*7);setDate(isoDate(d))}
+  function shiftWeek(n){const d=parseLocal(week.start);d.setDate(d.getDate()+n*7);setDate(isoDate(d));const shown=parseLocal(calendarDate);shown.setDate(shown.getDate()+n*7);setCalendarDate(isoDate(shown))}
 }
 
 function Summary({title,value,icon,onClick,active}){return <button className={`summary-card ${active?"summary-active":""}`} onClick={onClick}><span className="summary-icon">{icon}</span><span><small>{title}</small><strong>{value}</strong></span></button>}
