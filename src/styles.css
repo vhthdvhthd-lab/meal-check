@@ -309,3 +309,16 @@ button:hover{background:#f3f4f6}
   .inventory td:nth-child(2),.inventory th:nth-child(2){text-align:center!important}
   .inventory td:nth-child(2) .unit-input{display:block!important;width:100%!important;margin:0 auto!important;padding:0!important;text-align:center!important;text-align-last:center!important}
 }
+
+@media print{
+  .print-approval{right:3mm!important}
+  .print-logo{width:calc(100% - 3mm)!important;margin-left:0!important;margin-right:3mm!important;justify-content:flex-end!important}
+}
+
+@media print{
+  @page{size:A4 landscape;margin:7mm 7mm 9mm 19mm}
+  .inventory th:nth-child(2),.inventory td:nth-child(2){width:4%!important;min-width:0!important;max-width:4%!important}
+}
+
+.title-utility button{background:#d875a3!important;color:#fff!important;border-color:#d875a3!important;font-weight:700}
+.title-utility button:hover{background:#c95f90!important;border-color:#c95f90!important}

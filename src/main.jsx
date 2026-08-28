@@ -131,9 +131,6 @@ function App(){
             note:prior.note||""
           }:created);
           changed=true;
-        }else if(prior&&next[currentIndex].opening_stock!==opening){
-          next[currentIndex]={...next[currentIndex],opening_stock:opening,updated_at:new Date().toISOString()};
-          changed=true;
         }
       });
       return changed?next:prev;
@@ -159,8 +156,8 @@ function App(){
   function previousWeek(s){const d=parseLocal(s);d.setDate(d.getDate()-7);return isoDate(d)}
   function patchRecord(itemId,patch){
     setSaveState("저장 중...");
-    setRecords(prev=>prev.map(r=>r.weekly_record_id===week.start&&r.item_id===itemId?
-      {...r,...patch,updated_at:new Date().toISOString()}:r));
+    setRecords(prev=>{const next=prev.map(r=>r.weekly_record_id===week.start&&r.item_id===itemId?
+      {...r,...patch,updated_at:new Date().toISOString()}:r);save(STORAGE.records,next);return next});
     setTimeout(()=>setSaveState("저장됨"),350);
   }
   function getIncoming(itemId){
@@ -195,13 +192,13 @@ function App(){
 
   function addItem(data){
     const item={...data,id:uid(),active:true,sort_order:items.length,created_at:new Date().toISOString(),updated_at:new Date().toISOString()};
-    setItems(prev=>[...prev,item]); setModal(null);
+    setItems(prev=>{const next=[...prev,item];save(STORAGE.items,next);return next}); setModal(null);
   }
   function updateItem(data){
-    setItems(prev=>prev.map(i=>i.id===data.id?{...i,...data,updated_at:new Date().toISOString()}:i));setModal(null);
+    setItems(prev=>{const next=prev.map(i=>i.id===data.id?{...i,...data,updated_at:new Date().toISOString()}:i);save(STORAGE.items,next);return next});setModal(null);
   }
   function patchItem(id,patch){
-    setItems(prev=>prev.map(i=>i.id===id?{...i,...patch,updated_at:new Date().toISOString()}:i));
+    setItems(prev=>{const next=prev.map(i=>i.id===id?{...i,...patch,updated_at:new Date().toISOString()}:i);save(STORAGE.items,next);return next});
   }
   function disableItem(id){setItems(prev=>prev.map(i=>i.id===id?{...i,active:false}:i));}
   function setItemActive(id,active){setItems(prev=>prev.map(i=>i.id===id?{...i,active,updated_at:new Date().toISOString()}:i));}
@@ -220,8 +217,8 @@ function App(){
   function patchIncoming(itemId,patch){
     setIncoming(prev=>{
       const found=prev.find(x=>x.weekly_record_id===week.start&&x.item_id===itemId);
-      if(found) return prev.map(x=>x.id===found.id?{...x,...patch}:x);
-      return [...prev,{id:uid(),weekly_record_id:week.start,item_id:itemId,incoming_date:"",quantity:"",created_at:new Date().toISOString(),...patch}];
+      const next=found?prev.map(x=>x.id===found.id?{...x,...patch}:x):[...prev,{id:uid(),weekly_record_id:week.start,item_id:itemId,incoming_date:"",quantity:"",created_at:new Date().toISOString(),...patch}];
+      save(STORAGE.incoming,next);return next;
     });
   }
   function copyLastWeek(){
@@ -306,7 +303,39 @@ function App(){
     {help&&<Help onClose={()=>{setHelp(false);save(STORAGE.help,true)}}/>}
   </div>;
 
-  function shiftWeek(n){const d=parseLocal(week.start);d.setDate(d.getDate()+n*7);setDate(isoDate(d));const shown=parseLocal(calendarDate);shown.setDate(shown.getDate()+n*7);setCalendarDate(isoDate(shown))}
+  function shiftWeek(n){
+    const d=parseLocal(week.start);d.setDate(d.getDate()+n*7);const targetStart=isoDate(d);
+    if(n>0){
+      setRecords(prev=>{
+        let next=[...prev];
+        activeItems.forEach(item=>{
+          const source=next.find(r=>r.weekly_record_id===week.start&&r.item_id===item.id);
+          if(!source)return;
+          const sourceIncoming=incoming.find(x=>x.weekly_record_id===week.start&&x.item_id===item.id);
+          const incomingQty=sourceIncoming?(numeric(sourceIncoming.quantity)??0):0;
+          const calculated=source.manual_stock!==""&&source.manual_stock!=null?source.manual_stock:(stockCalc(source,incomingQty)??source.current_stock??"");
+          const opening=numeric(calculated)===0?"":calculated;
+          const targetIndex=next.findIndex(r=>r.weekly_record_id===targetStart&&r.item_id===item.id);
+          if(targetIndex>=0)next[targetIndex]={...next[targetIndex],opening_stock:opening,updated_at:new Date().toISOString()};
+          else next.push({...makeRecord(item,targetStart,opening),expiration_date:source.expiration_date||"",delivery_date:source.delivery_date||"",consumption_date:source.consumption_date||"",storage_method:source.storage_method||item.storage_method,note:source.note||""});
+        });
+        save(STORAGE.records,next);return next;
+      });
+      setIncoming(prev=>{
+        let next=[...prev];
+        activeItems.forEach(item=>{
+          const source=prev.find(x=>x.weekly_record_id===week.start&&x.item_id===item.id&&x.incoming_date);
+          if(!source)return;
+          const target=next.find(x=>x.weekly_record_id===targetStart&&x.item_id===item.id);
+          if(target&&!target.incoming_date)next=next.map(x=>x.id===target.id?{...x,incoming_date:source.incoming_date}:x);
+          else if(!target)next.push({id:uid(),weekly_record_id:targetStart,item_id:item.id,incoming_date:source.incoming_date,quantity:"",created_at:new Date().toISOString()});
+        });
+        save(STORAGE.incoming,next);return next;
+      });
+    }
+    setDate(targetStart);
+    const shown=parseLocal(calendarDate);shown.setDate(shown.getDate()+n*7);setCalendarDate(isoDate(shown));
+  }
 }
 
 function Summary({title,value,icon,onClick,active,emphasis}){return <button className={`summary-card ${active?"summary-active":""} ${emphasis?`summary-${emphasis}`:""}`} onClick={onClick}><span className="summary-icon">{icon}</span><span><small>{title}</small><strong>{value}</strong></span></button>}
