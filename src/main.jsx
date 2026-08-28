@@ -260,8 +260,8 @@ function App(){
       <section className="title-row">
         <div><h1>이번 주 식자재 수불대장</h1><div className="range">{fmtRange(week)}</div><div className="print-category">{category}</div></div>
         <section className="print-approval" aria-label="결재란">
-          <div className="approval-title">결<br/>재</div>
-          {['담당','팀장','국장','센터장'].map(role=><div className="approval-cell" key={role}><span>{role}</span><i></i></div>)}
+          <div className="approval-title">결<br/><br/>재</div>
+          {['담 당','팀 장','국 장','센 터 장'].map(role=><div className="approval-cell" key={role}><span>{role}</span><i></i></div>)}
         </section>
       </section>
 
