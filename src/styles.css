@@ -224,3 +224,35 @@ button:hover{background:#f3f4f6}
   .inventory tbody td,.inventory tbody .sticky-col{background:#fff!important;color:#000!important}
   .inventory input,.inventory select{background:transparent!important;color:#000!important;-webkit-text-fill-color:#000!important}
 }
+
+/* Balanced control layout */
+.title-utility{display:flex;align-items:center;gap:8px;margin-left:auto}
+.title-utility button,.today-display{height:42px;border:1px solid #d1d5db;border-radius:10px;background:#fff}
+.title-utility button{padding:0 16px}
+.today-display{display:flex;align-items:center;gap:9px;padding:0 14px}
+.today-display span{font-size:12px;color:#64748b;font-weight:700}
+.today-display b{font-size:14px;color:#1f2937;white-space:nowrap}
+.control-panel{grid-template-columns:max-content minmax(560px,1fr) max-content;align-items:center}
+.control-panel>.tabs,.control-panel>.main-actions,.control-panel>.filters{height:64px;background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:10px;align-items:center}
+.control-panel>.main-actions{justify-self:center;justify-content:center;width:max-content}
+.control-panel>.main-actions button{height:42px;padding:0 14px;min-width:100px}
+.control-panel>.main-actions button:nth-child(4){min-width:178px}
+.control-panel>.main-actions button:nth-child(5){min-width:116px}
+.control-panel>.filters{justify-content:flex-end;flex-wrap:nowrap}
+.control-panel>.filters .search{height:42px;min-width:0;width:175px}
+.control-panel>.filters .filter{height:42px;padding:0 11px}
+
+@media(max-width:1400px){
+  .control-panel{grid-template-columns:1fr 1fr}
+  .control-panel>.main-actions{grid-column:1/-1;grid-row:1;justify-self:center;flex-wrap:wrap;width:auto;height:auto}
+  .control-panel>.tabs{grid-column:1;grid-row:2;height:auto}
+  .control-panel>.filters{grid-column:2;grid-row:2;height:auto;flex-wrap:wrap}
+}
+@media(max-width:900px){
+  .title-utility{width:100%;margin-left:0;flex-wrap:wrap}
+  .control-panel>.main-actions,.control-panel>.filters{width:100%;justify-content:flex-start}
+  .control-panel>.filters .search{width:100%}
+}
+@media print{
+  .title-utility{display:none!important}
+}
